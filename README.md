@@ -1,0 +1,2 @@
+# SecKill
+Redis and RabbitMQ
