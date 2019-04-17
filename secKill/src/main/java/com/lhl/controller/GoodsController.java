@@ -1,23 +1,17 @@
 package com.lhl.controller;
 
 import com.lhl.domain.MiaoshaUser;
-import com.lhl.redis.GoodsKey;
 import com.lhl.redis.RedisService;
-import com.lhl.result.Result;
 import com.lhl.service.GoodsService;
 import com.lhl.service.MiaoshaUserService;
-import com.lhl.vo.GoodsDetailVo;
 import com.lhl.vo.GoodsVo;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.thymeleaf.context.IWebContext;
-import org.thymeleaf.context.WebContext;
 import org.thymeleaf.spring5.view.ThymeleafViewResolver;
 
 import javax.servlet.http.HttpServletRequest;
@@ -49,14 +43,16 @@ public class GoodsController extends BaseController {
 	 * QPS:2884, load:5 
 	 * */
     @RequestMapping(value="/to_list")
-    public String list(HttpServletRequest request, HttpServletResponse response, Model model,MiaoshaUser user) {
+    public String list(@CookieValue(value = MiaoshaUserService.COOKI_NAME_TOKEN,required = false)String cookieToken,
+    		HttpServletRequest request, HttpServletResponse response, Model model,MiaoshaUser user) {
     	model.addAttribute("user", user);
     	List<GoodsVo> goodsList = goodsService.listGoodsVo();
 		model.addAttribute("goodsList", goodsList);
-    	return render(request, response, model, "goods_list", GoodsKey.getGoodsList, "");
+    	//return render(request, response, model, "goods_list", GoodsKey.getGoodsList, "");
+		return "goods_list";
     }
     
-    @RequestMapping(value="/to_detail2/{goodsId}",produces="text/html")
+    /*@RequestMapping(value="/to_detail2/{goodsId}",produces="text/html")
     @ResponseBody
     public String detail2(HttpServletRequest request, HttpServletResponse response, Model model,MiaoshaUser user,
     		@PathVariable("goodsId")long goodsId) {
@@ -98,13 +94,13 @@ public class GoodsController extends BaseController {
     		redisService.set(GoodsKey.getGoodsDetail, ""+goodsId, html);
     	}
     	return html;
-    }
+    }*/
     
-    @RequestMapping(value="/detail/{goodsId}")
-    @ResponseBody
-    public Result<GoodsDetailVo> detail(HttpServletRequest request, HttpServletResponse response, Model model,MiaoshaUser user,
-    		@PathVariable("goodsId")long goodsId) {
-    	GoodsVo goods = goodsService.getGoodsVoByGoodsId(goodsId);
+    @RequestMapping(value="/goods_detail.htm/{goodsId}")
+    public String detail(HttpServletRequest request, HttpServletResponse response, Model model,MiaoshaUser user,
+    		@PathVariable("goodsId")String goodsId) {
+    	Long id = Long.valueOf(goodsId);
+    	GoodsVo goods = goodsService.getGoodsVoByGoodsId(id);
     	long startAt = goods.getStartDate().getTime();
     	long endAt = goods.getEndDate().getTime();
     	long now = System.currentTimeMillis();
@@ -120,12 +116,18 @@ public class GoodsController extends BaseController {
     		miaoshaStatus = 1;
     		remainSeconds = 0;
     	}
-    	GoodsDetailVo vo = new GoodsDetailVo();
+    	/*GoodsDetailVo vo = new GoodsDetailVo();
     	vo.setGoods(goods);
     	vo.setUser(user);
     	vo.setRemainSeconds(remainSeconds);
     	vo.setMiaoshaStatus(miaoshaStatus);
-    	return Result.success(vo);
+    	return Result.success(vo);*/
+		System.out.println("go");
+    	model.addAttribute("goods",goods);
+		model.addAttribute("miaoshaStatus",miaoshaStatus);
+		model.addAttribute("remainSeconds",remainSeconds);
+		model.addAttribute("user",user);
+    	return "goods_detail";
     }
     
     

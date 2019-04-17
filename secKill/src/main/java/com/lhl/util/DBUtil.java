@@ -1,0 +1,19 @@
+package com.lhl.util;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+
+public class DBUtil {
+
+	
+
+	
+	public static Connection getConn() throws Exception{
+		String url = "jdbc:mysql://localhost:3306/easybuy?useUnicode=true&characterEncoding=utf-8&useSSL=false";
+		String username = "root";
+		String password = "root";
+		String driver = "com.mysql.jdbc.Driver";
+		Class.forName(driver);
+		return DriverManager.getConnection(url,username, password);
+	}
+}
