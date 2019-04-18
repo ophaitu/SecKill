@@ -1,10 +1,14 @@
 package com.lhl.controller;
 
 import com.lhl.domain.MiaoshaUser;
+import com.lhl.redis.GoodsKey;
 import com.lhl.redis.RedisService;
+import com.lhl.result.Result;
 import com.lhl.service.GoodsService;
 import com.lhl.service.MiaoshaUserService;
+import com.lhl.vo.GoodsDetailVo;
 import com.lhl.vo.GoodsVo;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Controller;
@@ -12,6 +16,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.thymeleaf.context.IWebContext;
+import org.thymeleaf.context.WebContext;
 import org.thymeleaf.spring5.view.ThymeleafViewResolver;
 
 import javax.servlet.http.HttpServletRequest;
@@ -52,7 +59,7 @@ public class GoodsController extends BaseController {
 		return "goods_list";
     }
     
-    /*@RequestMapping(value="/to_detail2/{goodsId}",produces="text/html")
+    @RequestMapping(value="/to_detail2/{goodsId}",produces="text/html")
     @ResponseBody
     public String detail2(HttpServletRequest request, HttpServletResponse response, Model model,MiaoshaUser user,
     		@PathVariable("goodsId")long goodsId) {
@@ -94,41 +101,35 @@ public class GoodsController extends BaseController {
     		redisService.set(GoodsKey.getGoodsDetail, ""+goodsId, html);
     	}
     	return html;
-    }*/
-    
-    @RequestMapping(value="/goods_detail.htm/{goodsId}")
-    public String detail(HttpServletRequest request, HttpServletResponse response, Model model,MiaoshaUser user,
-    		@PathVariable("goodsId")String goodsId) {
-    	Long id = Long.valueOf(goodsId);
-    	GoodsVo goods = goodsService.getGoodsVoByGoodsId(id);
-    	long startAt = goods.getStartDate().getTime();
-    	long endAt = goods.getEndDate().getTime();
-    	long now = System.currentTimeMillis();
-    	int miaoshaStatus = 0;
-    	int remainSeconds = 0;
-    	if(now < startAt ) {//秒杀还没开始，倒计时
-    		miaoshaStatus = 0;
-    		remainSeconds = (int)((startAt - now )/1000);
-    	}else  if(now > endAt){//秒杀已经结束
-    		miaoshaStatus = 2;
-    		remainSeconds = -1;
-    	}else {//秒杀进行中
-    		miaoshaStatus = 1;
-    		remainSeconds = 0;
-    	}
-    	/*GoodsDetailVo vo = new GoodsDetailVo();
-    	vo.setGoods(goods);
-    	vo.setUser(user);
-    	vo.setRemainSeconds(remainSeconds);
-    	vo.setMiaoshaStatus(miaoshaStatus);
-    	return Result.success(vo);*/
-		System.out.println("go");
-    	model.addAttribute("goods",goods);
-		model.addAttribute("miaoshaStatus",miaoshaStatus);
-		model.addAttribute("remainSeconds",remainSeconds);
-		model.addAttribute("user",user);
-    	return "goods_detail";
     }
+
+	@RequestMapping(value="/detail/{goodsId}")
+	@ResponseBody
+	public Result<GoodsDetailVo> detail(HttpServletRequest request, HttpServletResponse response, Model model, MiaoshaUser user,
+										@PathVariable("goodsId")long goodsId) {
+		GoodsVo goods = goodsService.getGoodsVoByGoodsId(goodsId);
+		long startAt = goods.getStartDate().getTime();
+		long endAt = goods.getEndDate().getTime();
+		long now = System.currentTimeMillis();
+		int miaoshaStatus = 0;
+		int remainSeconds = 0;
+		if(now < startAt ) {//秒杀还没开始，倒计时
+			miaoshaStatus = 0;
+			remainSeconds = (int)((startAt - now )/1000);
+		}else  if(now > endAt){//秒杀已经结束
+			miaoshaStatus = 2;
+			remainSeconds = -1;
+		}else {//秒杀进行中
+			miaoshaStatus = 1;
+			remainSeconds = 0;
+		}
+		GoodsDetailVo vo = new GoodsDetailVo();
+		vo.setGoods(goods);
+		vo.setUser(user);
+		vo.setRemainSeconds(remainSeconds);
+		vo.setMiaoshaStatus(miaoshaStatus);
+		return Result.success(vo);
+	}
     
     
 }
