@@ -1,58 +1,72 @@
 package com.lhl.controller;
 
-import com.lhl.domain.MiaoshaOrder;
-import com.lhl.domain.MiaoshaUser;
-import com.lhl.domain.OrderInfo;
-import com.lhl.redis.RedisService;
-import com.lhl.result.CodeMsg;
-import com.lhl.service.GoodsService;
-import com.lhl.service.MiaoshaService;
-import com.lhl.service.OrderService;
-import com.lhl.vo.GoodsVo;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.lhl.domain.MiaoshaOrder;
+import com.lhl.domain.MiaoshaUser;
+import com.lhl.domain.OrderInfo;
+import com.lhl.redis.RedisService;
+import com.lhl.result.CodeMsg;
+import com.lhl.result.Result;
+import com.lhl.service.GoodsService;
+import com.lhl.service.MiaoshaService;
+import com.lhl.service.MiaoshaUserService;
+import com.lhl.service.OrderService;
+import com.lhl.vo.GoodsVo;
 
 @Controller
 @RequestMapping("/miaosha")
-public class MiaoshaController implements InitializingBean {
+public class MiaoshaController {
+
 	@Autowired
-	MiaoshaService miaoshaService;
+	MiaoshaUserService userService;
+	
 	@Autowired
 	RedisService redisService;
-	@Autowired
-	OrderService orderService;
+	
 	@Autowired
 	GoodsService goodsService;
-	@Override
-	public void afterPropertiesSet() throws Exception {
-
-	}
-	@RequestMapping(value="/do_miaosha", method= RequestMethod.POST)
-	public String miaosha(Model model, MiaoshaUser user,@RequestParam("goodsId")long goodsId) {
-		model.addAttribute("user", user);
-		if(user == null) {
-			return "login";
-		}
-		GoodsVo goods = goodsService.getGoodsVoByGoodsId(goodsId);
-		int stock = goods.getStockCount();
-		if(stock<=0){
-			model.addAttribute("errmsg",CodeMsg.MIAO_SHA_OVER);
-			return "miaosha_fail";
-		}
-		MiaoshaOrder order = orderService.getMiaoshaOrderByUserIdGoodsId(user.getId(),goodsId);
-		if(order!=null){
-			model.addAttribute("errmsg",CodeMsg.REPEATE_MIAOSHA);
-			return "miaosha_fail";
-		}
-		OrderInfo orderInfo = miaoshaService.miaosha(user,goods);
-		model.addAttribute("orderInfo", orderInfo);
-		model.addAttribute("goods", goods);
-		return "order_detail";
-
-	}
+	
+	@Autowired
+	OrderService orderService;
+	
+	@Autowired
+	MiaoshaService miaoshaService;
+	
+	/**
+	 * QPS:1306
+	 * 5000 * 10
+	 * */
+	/**
+	 *  GET POST有什么区别？
+	 * */
+    @RequestMapping(value="/do_miaosha", method=RequestMethod.POST)
+    @ResponseBody
+    public Result<OrderInfo> miaosha(Model model,MiaoshaUser user,
+    		@RequestParam("goodsId")long goodsId) {
+    	model.addAttribute("user", user);
+    	if(user == null) {
+    		return Result.error(CodeMsg.SESSION_ERROR);
+    	}
+    	//判断库存
+    	GoodsVo goods = goodsService.getGoodsVoByGoodsId(goodsId);//10个商品，req1 req2
+    	int stock = goods.getStockCount();
+    	if(stock <= 0) {
+    		return Result.error(CodeMsg.MIAO_SHA_OVER);
+    	}
+    	//判断是否已经秒杀到了
+    	MiaoshaOrder order = orderService.getMiaoshaOrderByUserIdGoodsId(user.getId(), goodsId);
+    	if(order != null) {
+    		return Result.error(CodeMsg.REPEATE_MIAOSHA);
+    	}
+    	//减库存 下订单 写入秒杀订单
+    	OrderInfo orderInfo = miaoshaService.miaosha(user, goods);
+        return Result.success(orderInfo);
+    }
 }
