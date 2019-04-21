@@ -2,6 +2,7 @@ package com.lhl.controller;
 
 import com.lhl.domain.Demo;
 import com.lhl.domain.User;
+import com.lhl.rabbitmq.MQSender;
 import com.lhl.redis.RedisService;
 import com.lhl.redis.UserKey;
 import com.lhl.result.Result;
@@ -19,6 +20,8 @@ public class IndexController {
     DemoService demoService;
     @Autowired
     RedisService redisService;
+    @Autowired
+    MQSender mQSender;
 
     @RequestMapping("index")
     public String index(Model model, LoginVo lv){
@@ -59,6 +62,19 @@ public class IndexController {
         user.setId(1);
         user.setName("1111");
         redisService.set(UserKey.getById, ""+1, user);//UserKey:id1
+        return Result.success(true);
+    }
+
+    @RequestMapping("/mq")
+    @ResponseBody
+    public Result<Boolean> mq() {
+        mQSender.send("去啊");
+        return Result.success(true);
+    }
+    @RequestMapping("/topicmq")
+    @ResponseBody
+    public Result<Boolean> topicmq() {
+        mQSender.sendTopic("topicmq");
         return Result.success(true);
     }
 }
